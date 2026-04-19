@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - Network Port Scanner{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Security Alerts</h1>
+        <p class="text-gray-600">View and manage security alerts from your scans</p>
+    </div>
+
+    <!-- Alerts List -->
+    <div class="space-y-4">
+        {% if alerts.items %}
+            {% for alert in alerts.items %}
+            <div class="card border-l-4 {% if alert.severity == 'critical' %}border-red-600{% elif alert.severity == 'high' %}border-orange-500{% elif alert.severity == 'medium' %}border-yellow-500{% else %}border-green-600{% endif %}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            {% if alert.severity == 'critical' %}
+                            <span class="badge-critical">{{ alert.severity|upper }}</span>
+                            {% elif alert.severity == 'high' %}
+                            <span class="badge-high">{{ alert.severity|upper }}</span>
+                            {% elif alert.severity == 'medium' %}
+                            <span class="badge-medium">{{ alert.severity|upper }}</span>
+                            {% else %}
+                            <span class="badge-low">{{ alert.severity|upper }}</span>
+                            {% endif %}
+                            <span class="text-sm text-gray-500">{{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ alert.alert_type|replace('_', ' ')|title }}</h3>
+                        <p class="text-gray-700">{{ alert.message }}</p>
+                        {% if alert.scan %}
+                        <p class="text-sm text-gray-600 mt-2">
+                            Related scan: <a href="{{ url_for('dashboard.scan_detail', scan_id=alert.scan_id) }}" class="text-blue-600 hover:underline font-semibold">{{ alert.scan.target }}</a>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    {% if not alert.is_read %}
+                    <button onclick="markAlertRead({{ alert.id }})" class="btn-primary text-sm ml-4">Mark as Read</button>
+                    {% else %}
+                    <span class="text-sm text-gray-500 ml-4">Read</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if alerts.pages > 1 %}
+            <div class="flex justify-center gap-2 mt-8">
+                {% if alerts.has_prev %}
+                <a href="{{ url_for('dashboard.alerts', page=alerts.prev_num) }}" class="btn-secondary">← Previous</a>
+                {% endif %}
+
+                {% for page_num in alerts.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == alerts.page %}
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">{{ page_num }}</button>
+                        {% else %}
+                        <a href="{{ url_for('dashboard.alerts', page=page_num) }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">{{ page_num }}</a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if alerts.has_next %}
+                <a href="{{ url_for('dashboard.alerts', page=alerts.next_num) }}" class="btn-secondary">Next →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+        <div class="card text-center py-12">
+            <p class="text-gray-500 text-lg">✅ No alerts at this time</p>
+            <p class="text-gray-600 mt-2">Your network is looking secure!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function markAlertRead(alertId) {
+    try {
+        const response = await fetch(`{{ url_for('scanner.api_mark_alert_read', alert_id=0) }}`.replace('/0/', '/' + alertId + '/'), {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            location.reload();
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Network Port Scanner{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-bg-dark px-4">
+    <div class="w-full max-w-md">
+        <div class="bg-card-bg rounded-xl border border-border-color shadow-2xl p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-cyan-400 mb-2">
+                    <span style="font-family: 'Monaco', 'Courier New', monospace;">></span> NetScan
+                </h1>
+                <p class="text-text-secondary">Create Your Account</p>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-900 bg-opacity-30 border border-red-600 text-red-200 px-4 py-3 rounded-lg mb-6">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-text-primary mb-2">Username</label>
+                    <input type="text" name="username" required class="input-field" placeholder="Choose a username">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-text-primary mb-2">Password</label>
+                    <input type="password" name="password" required class="input-field" placeholder="Create a password">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-text-primary mb-2">Confirm Password</label>
+                    <input type="password" name="confirm_password" required class="input-field" placeholder="Confirm password">
+                </div>
+
+                <button type="submit" class="btn-primary w-full font-semibold">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-text-secondary">Already have an account? 
+                    <a href="{{ url_for('auth.login') }}" class="text-cyan-400 font-semibold hover:text-cyan-300">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

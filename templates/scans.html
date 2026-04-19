@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}All Scans - NetScan{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scans-header {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    
+    .stat-box {
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 20px;
+        padding: 16px;
+        text-align: center;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-box:hover {
+        transform: translateY(-3px);
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+    
+    .stat-number {
+        font-size: 36px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    
+    .stat-label {
+        color: #9ca3af;
+        font-size: 13px;
+        margin-top: 8px;
+    }
+    
+    .scans-table-container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    
+    .scans-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .scans-table thead tr {
+        background: rgba(139, 92, 246, 0.15);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    
+    .scans-table th {
+        padding: 16px 12px;
+        text-align: left;
+        color: #c4b5fd;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .scans-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: #e5e7eb;
+        font-size: 14px;
+    }
+    
+    .scans-table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .scans-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    
+    .type-quick {
+        background: rgba(34, 197, 94, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        color: #4ade80;
+    }
+    
+    .type-full {
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.5);
+        color: #c4b5fd;
+    }
+    
+    .status-completed {
+        color: #4ade80;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-completed::before {
+        content: "●";
+        font-size: 10px;
+    }
+    
+    .ports-count {
+        font-weight: 700;
+        font-size: 18px;
+        color: white;
+    }
+    
+    .ports-label {
+        font-size: 10px;
+        color: #9ca3af;
+        display: block;
+    }
+    
+    .view-btn {
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        padding: 6px 16px;
+        border-radius: 12px;
+        color: #c4b5fd;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .view-btn:hover {
+        background: rgba(139, 92, 246, 0.4);
+        transform: scale(1.05);
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .page-link {
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        color: #e5e7eb;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .page-link:hover {
+        background: rgba(139, 92, 246, 0.3);
+    }
+    
+    .page-active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .duration-cell {
+        font-family: monospace;
+        font-size: 13px;
+        color: #9ca3af;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .scans-table th, .scans-table td {
+            padding: 10px 8px;
+            font-size: 12px;
+        }
+        
+        .view-btn {
+            padding: 4px 10px;
+            font-size: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="scans-header">
+        <div class="flex flex-wrap justify-between items-start gap-4">
+            <div>
+                <h1 class="text-3xl font-bold gradient-text mb-2">📋 All Scans</h1>
+                <p class="text-gray-400">Manage and review your network scans history</p>
+            </div>
+            <a href="{{ url_for('dashboard.index') }}" class="btn-modern px-5 py-2 rounded-xl text-white text-sm font-semibold flex items-center gap-2">
+                🚀 New Scan
+            </a>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-number">{{ scans.total if scans else 0 }}</div>
+                <div class="stat-label">Total Scans</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ scans.items|selectattr('scan_type', 'equalto', 'quick')|list|length if scans else 0 }}</div>
+                <div class="stat-label">Quick Scans</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ scans.items|selectattr('scan_type', 'equalto', 'full')|list|length if scans else 0 }}</div>
+                <div class="stat-label">Full Scans</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ scans.items|sum(attribute='duration')|round(0) if scans else 0 }}s</div>
+                <div class="stat-label">Total Duration</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scans Table -->
+    <div class="scans-table-container">
+        {% if scans and scans.items %}
+        <table class="scans-table">
+            <thead>
+                <tr>
+                    <th>Target</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Ports</th>
+                    <th>Start Time</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in scans.items %}
+                <tr>
+                    <td class="font-semibold">{{ scan.target }}</td>
+                    <td>
+                        {% if scan.scan_type == 'quick' %}
+                        <span class="type-badge type-quick">⚡ QUICK</span>
+                        {% else %}
+                        <span class="type-badge type-full">🔍 FULL</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-completed">COMPLETED</span>
+                    </td>
+                    <td>
+                        <span class="ports-count">{{ scan.ports|length if scan.ports else 0 }}</span>
+                        <span class="ports-label">ports</span>
+                    </td>
+                    <td class="text-gray-300">{{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="duration-cell">{{ "%.2f"|format(scan.duration) if scan.duration else '0.00' }}s</td>
+                    <td>
+                        <a href="{{ url_for('dashboard.scan_detail', scan_id=scan.id) }}" class="view-btn">
+                            View →
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        {% if scans.pages > 1 %}
+        <div class="pagination">
+            {% if scans.has_prev %}
+            <a href="{{ url_for('dashboard.scans', page=scans.prev_num) }}" class="page-link">← Previous</a>
+            {% endif %}
+            
+            {% for page_num in scans.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == scans.page %}
+                    <span class="page-link page-active">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('dashboard.scans', page=page_num) }}" class="page-link">{{ page_num }}</a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if scans.has_next %}
+            <a href="{{ url_for('dashboard.scans', page=scans.next_num) }}" class="page-link">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3 class="text-xl font-semibold text-white mb-2">No scans yet</h3>
+            <p class="text-gray-400 mb-6">Start your first network scan to see results here</p>
+            <a href="{{ url_for('dashboard.index') }}" class="btn-modern px-6 py-3 rounded-xl text-white font-semibold inline-flex items-center gap-2">
+                🚀 Start a Scan
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

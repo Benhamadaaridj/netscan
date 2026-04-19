@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Details - Network Port Scanner{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Scan Details</h1>
+                <p class="text-gray-600">Target: <span class="font-semibold">{{ scan.target }}</span></p>
+            </div>
+            <div class="text-right">
+                {% if scan.status == 'completed' %}
+                <span class="badge-low">{{ scan.status|upper }}</span>
+                <button onclick="exportPDF({{ scan.id }})" class="btn-primary mt-3">📥 Export PDF</button>
+                {% elif scan.status == 'running' %}
+                <span class="badge-medium">{{ scan.status|upper }}</span>
+                {% else %}
+                <span class="badge-high">{{ scan.status|upper }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card">
+            <p class="text-gray-600 text-sm font-semibold">Scan Type</p>
+            <p class="text-2xl font-bold text-blue-600 mt-2">{{ scan.scan_type|upper }}</p>
+        </div>
+
+        <div class="card">
+            <p class="text-gray-600 text-sm font-semibold">Start Time</p>
+            <p class="text-sm font-mono mt-2">{{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        </div>
+
+        <div class="card">
+            <p class="text-gray-600 text-sm font-semibold">Duration</p>
+            <p class="text-2xl font-bold text-green-600 mt-2">{{ "%.2f"|format(scan.duration) if scan.duration else '-' }}s</p>
+        </div>
+
+        <div class="card">
+            <p class="text-gray-600 text-sm font-semibold">Ports Found</p>
+            <p class="text-2xl font-bold text-purple-600 mt-2">{{ ports|length }}</p>
+        </div>
+    </div>
+
+    <!-- Risk Summary -->
+    {% set critical = ports|selectattr('risk_level', 'equalto', 'critical')|list %}
+    {% set high = ports|selectattr('risk_level', 'equalto', 'high')|list %}
+    {% set medium = ports|selectattr('risk_level', 'equalto', 'medium')|list %}
+    {% set low = ports|selectattr('risk_level', 'equalto', 'low')|list %}
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div class="card border-l-4 border-red-600">
+            <p class="text-gray-600 text-sm font-semibold">Critical</p>
+            <p class="text-3xl font-bold text-red-600 mt-2">{{ critical|length }}</p>
+        </div>
+
+        <div class="card border-l-4 border-orange-500">
+            <p class="text-gray-600 text-sm font-semibold">High</p>
+            <p class="text-3xl font-bold text-orange-500 mt-2">{{ high|length }}</p>
+        </div>
+
+        <div class="card border-l-4 border-yellow-500">
+            <p class="text-gray-600 text-sm font-semibold">Medium</p>
+            <p class="text-3xl font-bold text-yellow-500 mt-2">{{ medium|length }}</p>
+        </div>
+
+        <div class="card border-l-4 border-green-600">
+            <p class="text-gray-600 text-sm font-semibold">Low</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ low|length }}</p>
+        </div>
+    </div>
+
+    <!-- Ports Table -->
+    <div class="card">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Port Scan Results</h2>
+
+        {% if ports %}
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Protocol</th>
+                        <th>State</th>
+                        <th>Service</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for port in ports|sort(attribute='port_number') %}
+                    <tr>
+                        <td class="font-bold text-blue-600">{{ port.port_number }}</td>
+                        <td>{{ port.protocol|upper }}</td>
+                        <td>
+                            {% if port.state == 'open' %}
+                            <span class="text-green-700 font-semibold">OPEN</span>
+                            {% elif port.state == 'closed' %}
+                            <span class="text-gray-500">CLOSED</span>
+                            {% else %}
+                            <span class="text-gray-500">{{ port.state|upper }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ port.service or '—' }}</td>
+                        <td>
+                            {% if port.risk_level == 'critical' %}
+                            <span class="badge-critical">{{ port.risk_level|upper }}</span>
+                            {% elif port.risk_level == 'high' %}
+                            <span class="badge-high">{{ port.risk_level|upper }}</span>
+                            {% elif port.risk_level == 'medium' %}
+                            <span class="badge-medium">{{ port.risk_level|upper }}</span>
+                            {% else %}
+                            <span class="badge-low">{{ port.risk_level|upper }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <p class="text-gray-500">No ports found in this scan.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{{ url_for('dashboard.scans') }}" class="btn-secondary">← Back to Scans</a>
+    </div>
+</div>
+
+<script>
+function exportPDF(scanId) {
+    const link = document.createElement('a');
+    link.href = `{{ url_for('scanner.api_export_pdf', scan_id=0) }}`.replace('/0/', '/' + scanId + '/');
+    link.download = 'scan_report.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

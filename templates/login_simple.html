@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetScan - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+        }
+        .input-modern {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .input-modern:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+        .btn-modern {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="w-full max-w-md">
+            <div class="glass-card p-8 text-center">
+                <div class="mb-8">
+                    <div class="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <span class="text-white text-4xl">🔍</span>
+                    </div>
+                    <h1 class="text-4xl font-bold gradient-text mb-2">NetScan</h1>
+                    <p class="text-gray-400">Advanced Network Port Monitoring</p>
+                </div>
+
+                {% if error %}
+                <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-6">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST" class="space-y-5">
+                    <div>
+                        <input type="text" name="username" required 
+                               class="input-modern w-full px-4 py-3"
+                               placeholder="Username">
+                    </div>
+
+                    <div>
+                        <input type="password" name="password" required 
+                               class="input-modern w-full px-4 py-3"
+                               placeholder="Password">
+                    </div>
+
+                    <button type="submit" class="btn-modern w-full py-3 rounded-xl font-semibold text-white">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-4 border-t border-gray-700">
+                    <p class="text-gray-500 text-sm">Demo: <span class="text-purple-400">admin / password</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

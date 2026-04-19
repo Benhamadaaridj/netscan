@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Comparisons - Network Port Scanner{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Scan Comparisons</h1>
+        <p class="text-gray-600">Compare network scans to track changes over time</p>
+    </div>
+
+    <!-- Create New Comparison -->
+    <div class="card mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Create New Comparison</h2>
+
+        {% if scans|length >= 2 %}
+        <form id="comparisonForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">First Scan</label>
+                    <select id="scan1" class="input-field" required>
+                        <option value="">Select a scan...</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}">{{ scan.target }} - {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Second Scan</label>
+                    <select id="scan2" class="input-field" required>
+                        <option value="">Select a scan...</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}">{{ scan.target }} - {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg flex items-center gap-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+    
+    Compare Scans
+    
+</button>
+        </form>
+
+        <div id="comparisonError" class="mt-4 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg"></div>
+        {% else %}
+        <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg">
+            <p>You need at least 2 scans to create a comparison. <a href="{{ url_for('dashboard.index') }}" class="font-semibold underline">Start a new scan</a></p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Previous Comparisons -->
+    <div class="card">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Comparison History</h2>
+
+        {% if comparisons.items %}
+        <div class="space-y-4">
+            {% for comparison in comparisons.items %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <h3 class="font-semibold text-gray-900">
+                            Comparison #{{ comparison.id }}
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            Previous Scan ID: {{ comparison.previous_scan_id }} | 
+                            Current Scan ID: {{ comparison.current_scan_id }}
+                        </p>
+                        <p class="text-sm text-gray-600">{{ comparison.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="bg-green-50 border border-green-200 rounded p-3 text-center">
+                        <p class="text-sm text-gray-600">New Ports</p>
+                        <p class="text-2xl font-bold text-green-600">{{ comparison.new_ports|length if comparison.new_ports else 0 }}</p>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 rounded p-3 text-center">
+                        <p class="text-sm text-gray-600">Closed Ports</p>
+                        <p class="text-2xl font-bold text-red-600">{{ comparison.closed_ports|length if comparison.closed_ports else 0 }}</p>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-center">
+                        <p class="text-sm text-gray-600">Service Changes</p>
+                        <p class="text-2xl font-bold text-yellow-600">{{ comparison.modified_services|length if comparison.modified_services else 0 }}</p>
+                    </div>
+                </div>
+
+                <!-- New Ports -->
+                {% if comparison.new_ports and comparison.new_ports|length > 0 %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-green-700 mb-2">🆕 New Ports:</h4>
+                    <div class="bg-green-50 rounded p-3 text-sm">
+                        {% for port in comparison.new_ports %}
+                        <div class="py-1">{{ port.port_number }}/{{ port.protocol }} - {{ port.service or 'Unknown' }} ({{ port.risk_level|upper }})</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Closed Ports -->
+                {% if comparison.closed_ports and comparison.closed_ports|length > 0 %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-red-700 mb-2">🔴 Closed Ports:</h4>
+                    <div class="bg-red-50 rounded p-3 text-sm">
+                        {% for port in comparison.closed_ports %}
+                        <div class="py-1">{{ port.port_number }}/{{ port.protocol }} - {{ port.service or 'Unknown' }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Service Changes -->
+                {% if comparison.modified_services and comparison.modified_services|length > 0 %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-yellow-700 mb-2">⚡ Service Changes:</h4>
+                    <div class="bg-yellow-50 rounded p-3 text-sm space-y-1">
+                        {% for change in comparison.modified_services %}
+                        <div>{{ change.port }}/tcp: {{ change.old_service or 'Unknown' }} → {{ change.new_service or 'Unknown' }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if comparisons.pages > 1 %}
+        <div class="flex justify-center gap-2 mt-8">
+            {% if comparisons.has_prev %}
+            <a href="{{ url_for('dashboard.comparisons', page=comparisons.prev_num) }}" class="btn-secondary">← Previous</a>
+            {% endif %}
+
+            {% for page_num in comparisons.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == comparisons.page %}
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">{{ page_num }}</button>
+                    {% else %}
+                    <a href="{{ url_for('dashboard.comparisons', page=page_num) }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">{{ page_num }}</a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            {% if comparisons.has_next %}
+            <a href="{{ url_for('dashboard.comparisons', page=comparisons.next_num) }}" class="btn-secondary">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-12">
+            <p class="text-gray-500 text-lg">No comparisons yet</p>
+            <p class="text-gray-600 mt-2">Run multiple scans and compare them above</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const form = document.getElementById('comparisonForm');
+if (form) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const scan1 = document.getElementById('scan1').value;
+        const scan2 = document.getElementById('scan2').value;
+        const errorDiv = document.getElementById('comparisonError');
+
+        if (scan1 === scan2) {
+            errorDiv.textContent = 'Please select two different scans';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ url_for("scanner.api_compare") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    scan1_id: parseInt(scan1), 
+                    scan2_id: parseInt(scan2) 
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                errorDiv.classList.remove('hidden');
+            } else {
+                location.reload();
+            }
+        } catch (error) {
+            errorDiv.textContent = 'Error: ' + error.message;
+            errorDiv.classList.remove('hidden');
+        }
+    });
+}
+</script>
+{% endblock %}

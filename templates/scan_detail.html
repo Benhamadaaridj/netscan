@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Details - {{ scan.target }} - NetScan{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        transition: all 0.3s ease;
+    }
+    
+    .info-row {
+        display: flex;
+    }
+    
+    .info-label {
+        width: 140px;
+        color: #9ca3af;
+        font-weight: 500;
+    }
+    
+    .info-value {
+        color: white;
+        font-weight: 600;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-completed {
+        background: rgba(34, 197, 94, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        color: #4ade80;
+    }
+    
+    .table-modern {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table-modern thead tr {
+        background: rgba(139, 92, 246, 0.2);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    
+    .table-modern th {
+        padding: 14px 12px;
+        text-align: left;
+        color: #c4b5fd;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    
+    .table-modern td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: #e5e7eb;
+        font-size: 14px;
+    }
+    
+    .table-modern tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+        transition: all 0.2s ease;
+    }
+    
+    .risk-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .risk-critical { background: linear-gradient(135deg, #dc2626, #991b1b); color: white; }
+    .risk-high { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+    .risk-medium { background: linear-gradient(135deg, #eab308, #ca8a04); color: white; }
+    .risk-low { background: linear-gradient(135deg, #22c55e, #15803d); color: white; }
+    
+    .state-open {
+        color: #4ade80;
+        font-weight: 600;
+    }
+    
+    .state-filtered {
+        color: #fbbf24;
+        font-weight: 600;
+    }
+    
+    .state-closed {
+        color: #f87171;
+        font-weight: 600;
+    }
+    
+    .btn-pdf {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-pdf:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+    }
+    
+    .btn-back {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .stat-circle {
+        text-align: center;
+        padding: 16px;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 20px;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    
+    .stat-number {
+        font-size: 32px;
+        font-weight: 800;
+        color: white;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header avec navigation -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{{ url_for('dashboard.scans') }}" class="btn-back px-4 py-2 rounded-xl text-white text-sm flex items-center gap-2">
+            ← Back to Scans
+        </a>
+        <div class="flex-1"></div>
+        <button id="exportPdfBtn" class="btn-pdf px-6 py-2 rounded-xl text-white text-sm font-semibold flex items-center gap-2">
+            📄 Export PDF
+        </button>
+    </div>
+
+    <!-- Titre principal -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold gradient-text mb-2">🔍 {{ scan.target }}</h1>
+        <p class="text-gray-400">Détails complets du scan réseau</p>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="stat-circle">
+            <div class="stat-number">{{ ports|length }}</div>
+            <div class="stat-label">Total Ports</div>
+        </div>
+        <div class="stat-circle">
+            <div class="stat-number">{{ ports|selectattr('state', 'equalto', 'open')|list|length }}</div>
+            <div class="stat-label">Open Ports</div>
+        </div>
+        <div class="stat-circle">
+            <div class="stat-number">{{ ports|selectattr('risk_level', 'equalto', 'critical')|list|length }}</div>
+            <div class="stat-label">Critical</div>
+        </div>
+        <div class="stat-circle">
+            <div class="stat-number">{{ scan.duration|round(1) if scan.duration else 0 }}s</div>
+            <div class="stat-label">Duration</div>
+        </div>
+    </div>
+
+    <!-- Informations du scan -->
+    <div class="detail-card p-6 mb-8">
+        <div class="flex flex-wrap justify-between items-start gap-4">
+            <div class="space-y-3">
+                <div class="info-row">
+                    <span class="info-label">🎯 Target</span>
+                    <span class="info-value">{{ scan.target }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">⚡ Scan Type</span>
+                    <span class="info-value">{{ scan.scan_type.upper() }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📅 Start Time</span>
+                    <span class="info-value">{{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">⏱️ Duration</span>
+                    <span class="info-value">{{ scan.duration|round(2) if scan.duration else 'N/A' }} seconds</span>
+                </div>
+            </div>
+            <div>
+                <div class="status-badge status-completed">
+                    <span>●</span> COMPLETED
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des ports -->
+    <div class="detail-card p-6">
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span>🔌</span> Ports détectés
+        </h2>
+        
+        {% if ports %}
+        <div class="overflow-x-auto">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Protocol</th>
+                        <th>State</th>
+                        <th>Service</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for port in ports %}
+                    <tr>
+                        <td class="font-mono font-semibold">{{ port.port_number }}</td>
+                        <td class="uppercase text-gray-400">{{ port.protocol }}</td>
+                        <td>
+                            {% if port.state == 'open' %}
+                            <span class="state-open">● OPEN</span>
+                            {% elif port.state == 'filtered' %}
+                            <span class="state-filtered">● FILTERED</span>
+                            {% else %}
+                            <span class="state-closed">● CLOSED</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ port.service or 'Unknown' }}</td>
+                        <td>
+                            {% if port.risk_level == 'critical' %}
+                            <span class="risk-badge risk-critical">CRITICAL</span>
+                            {% elif port.risk_level == 'high' %}
+                            <span class="risk-badge risk-high">HIGH</span>
+                            {% elif port.risk_level == 'medium' %}
+                            <span class="risk-badge risk-medium">MEDIUM</span>
+                            {% else %}
+                            <span class="risk-badge risk-low">LOW</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-5xl mb-4">📭</div>
+            <p class="text-gray-400">Aucun port détecté pour ce scan</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.getElementById('exportPdfBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('exportPdfBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Génération...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('{{ url_for("scanner.api_export_pdf", scan_id=scan.id) }}', {
+            method: 'GET'
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `scan_{{ scan.id }}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            btn.innerHTML = '✅ PDF Exported!';
+            setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+        } else {
+            throw new Error('Export failed');
+        }
+    } catch (error) {
+        btn.innerHTML = '❌ Error';
+        setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+    }
+});
+</script>
+{% endblock %}
