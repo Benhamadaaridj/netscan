@@ -1,111 +1,184 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - NetScan{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% import "macros.html" as macros %} {% block title
+%}Dashboard - NetScan{% endblock %} {% block content %}
 <div class="max-w-7xl mx-auto">
-    <!-- Welcome Section -->
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold gradient-text mb-2">Welcome back, {{ session.get('username') }} 👋</h1>
-        <p class="text-gray-400">Monitor and secure your network infrastructure</p>
-    </div>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold gradient-text mb-2">
+      Welcome back, {{ session.get('username') }} 👋
+    </h1>
+    <p class="text-gray-400">Monitor and secure your network infrastructure</p>
+  </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="stat-card p-6 text-center">
-            <div class="text-3xl mb-2">📊</div>
-            <div class="text-3xl font-bold text-white">{{ total_scans }}</div>
-            <div class="text-gray-400 text-sm">Total Scans</div>
-        </div>
-        <div class="stat-card p-6 text-center">
-            <div class="text-3xl mb-2">⚠️</div>
-            <div class="text-3xl font-bold text-red-400">{{ critical_alerts }}</div>
-            <div class="text-gray-400 text-sm">Critical Alerts</div>
-        </div>
-        <div class="stat-card p-6 text-center">
-            <div class="text-3xl mb-2">🔔</div>
-            <div class="text-3xl font-bold text-yellow-400">{{ unread_alerts|length }}</div>
-            <div class="text-gray-400 text-sm">Unread Alerts</div>
-        </div>
-    </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    {{ macros.stat_card('📊', total_scans, 'Total Scans') }} {{
+    macros.stat_card('⚠️', critical_alerts, 'Critical Alerts') }} {{
+    macros.stat_card('🔔', unread_alerts|length, 'Unread Alerts') }}
+  </div>
 
-    <!-- New Scan Section -->
-    <div class="glass-card p-6 mb-8">
-        <h2 class="text-2xl font-bold text-white mb-4">🚀 Start New Scan</h2>
-        <form id="scanForm" class="space-y-4">
-            <div>
-                <label class="block text-gray-300 mb-2">Target (IP or Domain)</label>
-                <input type="text" id="target" required 
-                       class="input-modern w-full px-4 py-3"
-                       placeholder="192.168.1.1 or example.com">
-            </div>
-            <div>
-                <label class="block text-gray-300 mb-2">Scan Type</label>
-                <select id="scanType" class="input-modern w-full px-4 py-3">
-                    <option value="quick">⚡ Quick Scan (Top 100 ports)</option>
-                    <option value="full">🔍 Full Scan (Top 1000 ports)</option>
-                </select>
-            </div>
-            <button type="submit" class="btn-modern px-6 py-3 rounded-xl font-semibold text-white">
-                Start Scan
-            </button>
-        </form>
-        <div id="scanStatus" class="mt-4 hidden"></div>
-    </div>
+  <div class="glass-card p-6 mb-8 border-2 border-purple-500/40">
+    <h2 class="text-2xl font-bold text-white mb-4">🌐 My IP Addresses</h2>
 
-    <!-- Recent Scans -->
-    <div class="glass-card p-6">
-        <h2 class="text-2xl font-bold text-white mb-4">📜 Recent Scans</h2>
-        {% if scans %}
-        <div class="space-y-3">
-            {% for scan in scans %}
-            <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <div class="font-semibold text-white">{{ scan.target }}</div>
-                        <div class="text-sm text-gray-400">{{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">{{ scan.scan_type }}</span>
-                        <a href="{{ url_for('dashboard.scan_detail', scan_id=scan.id) }}" class="text-purple-400 hover:text-purple-300">View →</a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+    <div id="myIpInfo" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white/5 rounded-lg p-4 text-center">
+        <div class="text-sm text-gray-400 mb-1">🌍 Your Public IP</div>
+        <div id="publicIp" class="font-mono text-cyan-400 text-xl font-bold">
+          Loading...
         </div>
-        {% else %}
-        <p class="text-gray-500 text-center py-8">No scans yet. Start your first scan above!</p>
-        {% endif %}
+      </div>
+      <div class="bg-white/5 rounded-lg p-4 text-center">
+        <div class="text-sm text-gray-400 mb-1">💻 Your Private IP</div>
+        <div id="localIp" class="font-mono text-green-400 text-xl font-bold">
+          Loading...
+        </div>
+      </div>
     </div>
+  </div>
+
+  <script>
+    async function loadMyIp() {
+      try {
+        const response = await fetch("/api/my-ip");
+        const data = await response.json();
+
+        document.getElementById("publicIp").innerHTML =
+          data.public_ip || "Not detected";
+        document.getElementById("localIp").innerHTML =
+          data.local_ip || "127.0.0.1";
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("publicIp").innerHTML = "Error";
+        document.getElementById("localIp").innerHTML = "127.0.0.1";
+      }
+    }
+
+    loadMyIp();
+  </script>
+
+  <div class="glass-card p-6 mb-8">
+    <h2 class="text-2xl font-bold text-white mb-4">🚀 Start New Scan</h2>
+    <form id="scanForm" class="space-y-4">
+      <div class="flex gap-4 items-center">
+        <input
+          type="text"
+          id="target"
+          required
+          class="input-field flex-1"
+          placeholder="192.168.1.1 or example.com"
+        />
+        <label class="flex items-center gap-2 text-gray-300 cursor-pointer">
+          <input type="checkbox" id="isRange" class="w-4 h-4 rounded" />
+          <span class="text-sm">IP Range</span>
+        </label>
+      </div>
+
+      <div
+        id="rangeHelp"
+        class="hidden text-sm text-gray-400 bg-gray-900/50 p-3 rounded-lg"
+      >
+        <p class="font-semibold text-gray-300 mb-1">📋 IP Range Formats:</p>
+        <ul class="list-disc list-inside space-y-1">
+          <li>
+            CIDR:
+            <code class="bg-gray-800 px-2 py-1 rounded">192.168.1.0/24</code>
+          </li>
+          <li>
+            Range:
+            <code class="bg-gray-800 px-2 py-1 rounded"
+              >192.168.1.1-192.168.1.50</code
+            >
+          </li>
+          <li>Max 254 IPs per scan</li>
+        </ul>
+      </div>
+
+      <select id="scanType" class="input-field">
+        <option value="quick">⚡ Quick Scan (Top 100 ports)</option>
+        <option value="full">🔍 Full Scan (Top 1000 ports)</option>
+      </select>
+
+      <button
+        type="submit"
+        class="btn-primary px-6 py-3 rounded-xl font-semibold text-white w-full md:w-auto"
+      >
+        Start Scan
+      </button>
+    </form>
+    <div id="scanStatus" class="mt-4 hidden"></div>
+  </div>
+
+  <div class="glass-card p-6">
+    <h2 class="text-2xl font-bold text-white mb-4">📜 Recent Scans</h2>
+    {% if scans %} {% for scan in scans %} {{ macros.scan_row(scan) }} {% endfor
+    %} {% else %}
+    <p class="text-gray-500 text-center py-8">
+      No scans yet. Start your first scan above!
+    </p>
+    {% endif %}
+  </div>
 </div>
 
+{% block extra_js %}
 <script>
-document.getElementById('scanForm')?.addEventListener('submit', async (e) => {
+  let isScanning = false;
+
+  document.getElementById("isRange")?.addEventListener("change", (e) => {
+    document
+      .getElementById("rangeHelp")
+      .classList.toggle("hidden", !e.target.checked);
+  });
+
+  document.getElementById("scanForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const target = document.getElementById('target').value;
-    const scanType = document.getElementById('scanType').value;
-    const statusDiv = document.getElementById('scanStatus');
-    
-    statusDiv.innerHTML = '<div class="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-purple-300">🔄 Scanning ' + target + '...</div>';
-    statusDiv.classList.remove('hidden');
-    
+
+    if (isScanning) return;
+    isScanning = true;
+
+    const target = document.getElementById("target").value;
+    const scanType = document.getElementById("scanType").value;
+    const isRange = document.getElementById("isRange").checked;
+    const statusDiv = document.getElementById("scanStatus");
+
+    const scanLabel = isRange ? "IP Range " + target : target;
+    statusDiv.innerHTML =
+      '<div class="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-purple-300">🔄 Scanning ' +
+      scanLabel +
+      "...</div>";
+    statusDiv.classList.remove("hidden");
+
     try {
-        const response = await fetch('/api/scan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target, scan_type: scanType })
-        });
-        const data = await response.json();
-        
-        if (data.error) {
-            statusDiv.innerHTML = '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300">❌ Error: ' + data.error + '</div>';
-        } else {
-            statusDiv.innerHTML = '<div class="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-300">✅ Scan completed! Redirecting...</div>';
-            setTimeout(() => location.reload(), 2000);
-        }
+      const response = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target,
+          scan_type: scanType,
+          is_range: isRange,
+        }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        statusDiv.innerHTML =
+          '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300">❌ Error: ' +
+          data.error +
+          "</div>";
+        isScanning = false;
+      } else {
+        let message = "✅ Scan completed!";
+        if (data.scanned_hosts)
+          message += " Scanned " + data.scanned_hosts + " hosts";
+        statusDiv.innerHTML =
+          '<div class="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-300">' +
+          message +
+          " Redirecting...</div>";
+        setTimeout(() => location.reload(), 2000);
+      }
     } catch (error) {
-        statusDiv.innerHTML = '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300">❌ Error: ' + error.message + '</div>';
+      statusDiv.innerHTML =
+        '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300">❌ Error: ' +
+        error.message +
+        "</div>";
+      isScanning = false;
     }
-});
+  });
 </script>
-{% endblock %}
+{% endblock %} {% endblock %}

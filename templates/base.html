@@ -1,161 +1,717 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NetScan - Modern Port Scanner{% endblock %}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}NetScan - Network Port Scanner{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Styles globaux -->
     <style>
-        * {
-            font-family: 'Inter', sans-serif;
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          #0f0c29 0%,
+          #1a1a2e 50%,
+          #16213e 100%
+        );
+        min-height: 100vh;
+      }
+
+      /* Composants réutilisables */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        transition: all 0.3s ease;
+      }
+
+      .glass-card:hover {
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .input-field {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: white;
+        width: 100%;
+        transition: all 0.3s ease;
+      }
+
+      .input-field:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+      }
+
+      /* Badges de risque */
+      .risk-critical {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+      }
+      .risk-high {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+      }
+      .risk-medium {
+        background: linear-gradient(135deg, #eab308, #ca8a04);
+      }
+      .risk-low {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .stat-card {
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(139, 92, 246, 0.5);
+      }
+
+      .stat-number {
+        font-size: 36px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      select.input-field option {
+        background-color: #1e1e2e;
+        color: #e5e7eb;
+        padding: 8px 12px;
+      }
+
+      select.input-field option:checked {
+        background-color: #4f46e5;
+        color: white;
+      }
+
+      .nav-link {
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .page-link {
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        color: #e5e7eb;
+        text-decoration: none;
+        transition: all 0.2s ease;
+      }
+
+      .page-link:hover,
+      .page-active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      /* Styles pour les notifications */
+      .notification-badge {
+        position: relative;
+        display: inline-block;
+      }
+
+      .notification-badge .badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: bold;
+        min-width: 18px;
+        text-align: center;
+        animation: pulse 1.5s infinite;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
         }
-        
-        body {
-            background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
-            min-height: 100vh;
+        50% {
+          transform: scale(1.2);
+          opacity: 0.8;
         }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            transition: all 0.3s ease;
+        100% {
+          transform: scale(1);
+          opacity: 1;
         }
-        
-        .glass-card:hover {
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+      }
+
+      .notifications-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 380px;
+        max-height: 450px;
+        overflow-y: auto;
+        background: #1a1a2e;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        display: none;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 10px;
+      }
+
+      .notifications-dropdown.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
         }
-        
-        .btn-modern {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        
-        .btn-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+      }
+
+      .notification-item {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .notification-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .notification-item.unread {
+        background: rgba(239, 68, 68, 0.1);
+        border-left: 3px solid #ef4444;
+      }
+
+      .notification-title {
+        font-weight: bold;
+        color: white;
+        font-size: 13px;
+      }
+
+      .notification-message {
+        color: #9ca3af;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+
+      .notification-time {
+        color: #6b7280;
+        font-size: 10px;
+        margin-top: 4px;
+      }
+
+      .mark-read-btn {
+        float: right;
+        font-size: 10px;
+        color: #60a5fa;
+        cursor: pointer;
+      }
+
+      .toast-notification {
+        position: fixed;
+        top: 90px;
+        right: 20px;
+        background: #1f2937;
+        border-left: 4px solid #ef4444;
+        border-radius: 12px;
+        padding: 14px 18px;
+        min-width: 320px;
+        z-index: 1100;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+      }
+
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
         }
-        
-        .btn-outline-modern {
-            background: transparent;
-            border: 1px solid rgba(139, 92, 246, 0.5);
-            transition: all 0.3s ease;
+        to {
+          transform: translateX(0);
+          opacity: 1;
         }
-        
-        .btn-outline-modern:hover {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: #8b5cf6;
+      }
+
+      .toast-notification.hide {
+        animation: slideOutRight 0.3s ease forwards;
+      }
+
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
         }
-        
-        .stat-card {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 20px;
-            transition: all 0.3s ease;
+        to {
+          transform: translateX(100%);
+          opacity: 0;
         }
-        
-        .stat-card:hover {
-            transform: scale(1.05);
-            border-color: #8b5cf6;
-        }
-        
-        .nav-link {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            transition: width 0.3s ease;
-        }
-        
-        .nav-link:hover::after {
-            width: 100%;
-        }
-        
-        .input-modern {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        
-        .input-modern:focus {
-            outline: none;
-            border-color: #8b5cf6;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
-        }
-        
-        .badge-critical { background: linear-gradient(135deg, #dc2626, #991b1b); }
-        .badge-high { background: linear-gradient(135deg, #f97316, #ea580c); }
-        .badge-medium { background: linear-gradient(135deg, #eab308, #ca8a04); }
-        .badge-low { background: linear-gradient(135deg, #22c55e, #15803d); }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #1a1a2e;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 10px;
-        }
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1a1a2e;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 10px;
+      }
+
+      .notification-badge button {
+        background: rgba(255, 255, 255, 0.15);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .user-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 8px;
+        width: 200px;
+        background: #1a1a2e;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+      }
+
+      .user-menu.hidden {
+        display: none;
+      }
+
+      .user-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        color: #e5e7eb;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .user-menu-item:hover {
+        background: rgba(139, 92, 246, 0.2);
+      }
+
+      .user-menu-item.logout:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
     </style>
+
     {% block extra_css %}{% endblock %}
-</head>
-<body>
+  </head>
+  <body>
+    <!-- Navigation -->
     {% if 'user_id' in session %}
     <nav class="glass-card mx-6 mt-4 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                    <span class="text-white text-xl">🔍</span>
-                </div>
-                <a href="{{ url_for('dashboard.index') }}" class="text-2xl font-bold gradient-text">NetScan</a>
-            </div>
-            <div class="hidden md:flex gap-8">
-                <a href="{{ url_for('dashboard.index') }}" class="nav-link text-gray-300 hover:text-white">Dashboard</a>
-                <a href="{{ url_for('dashboard.scans') }}" class="nav-link text-gray-300 hover:text-white">Scans</a>
-                <a href="{{ url_for('dashboard.alerts') }}" class="nav-link text-gray-300 hover:text-white">Alerts</a>
-                <a href="{{ url_for('dashboard.comparisons') }}" class="nav-link text-gray-300 hover:text-white">Comparisons</a>
-            </div>
-            <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-300">👤 {{ session.get('username', 'User') }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="btn-outline-modern px-4 py-2 rounded-lg text-sm text-white">Logout</a>
-            </div>
+      <div
+        class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center"
+          >
+            <span class="text-white text-xl">🔍</span>
+          </div>
+          <a
+            href="{{ url_for('dashboard.index') }}"
+            class="text-2xl font-bold gradient-text"
+            >NetScan</a
+          >
         </div>
+
+        <div class="hidden md:flex gap-6">
+          <a
+            href="{{ url_for('dashboard.index') }}"
+            class="nav-link text-gray-300 hover:text-white"
+            >Dashboard</a
+          >
+          <a
+            href="{{ url_for('dashboard.scans') }}"
+            class="nav-link text-gray-300 hover:text-white"
+            >Scans</a
+          >
+          <a
+            href="{{ url_for('dashboard.alerts') }}"
+            class="nav-link text-gray-300 hover:text-white"
+            >Alerts</a
+          >
+          <a
+            href="{{ url_for('dashboard.comparisons') }}"
+            class="nav-link text-gray-300 hover:text-white"
+            >Comparisons</a
+          >
+          <a
+            href="{{ url_for('dashboard.scheduler') }}"
+            class="nav-link text-gray-300 hover:text-white"
+            >Scheduler</a
+          >
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="relative notification-badge">
+            <button
+              onclick="toggleNotifications()"
+              class="relative text-white text-xl transition-colors"
+            >
+              🔔
+              <span id="notificationBadge" class="badge" style="display: none"
+                >0</span
+              >
+            </button>
+
+            <div id="notificationsDropdown" class="notifications-dropdown">
+              <div
+                style="
+                  padding: 14px;
+                  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span style="font-weight: bold; color: white"
+                  >Notifications</span
+                >
+                <button
+                  onclick="markAllAsRead()"
+                  style="
+                    color: #60a5fa;
+                    font-size: 11px;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 4px 8px;
+                    border-radius: 8px;
+                    background: rgba(96, 165, 250, 0.1);
+                  "
+                >
+                  Mark all as read
+                </button>
+              </div>
+              <div
+                id="notificationsContent"
+                style="max-height: 380px; overflow-y: auto"
+              >
+                <div class="notification-item">
+                  <div class="notification-message" style="text-align: center">
+                    Loading...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="relative">
+            <button
+              onclick="toggleUserMenu()"
+              class="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-all px-4 py-2 rounded-lg"
+            >
+              <span class="text-white font-medium"
+                >👤 {{ session.get('username', 'User') }}</span
+              >
+              <span class="text-white text-xs">▼</span>
+            </button>
+
+            <div id="userMenu" class="user-menu hidden">
+              <a
+                href="{{ url_for('dashboard.change_password') }}"
+                class="user-menu-item"
+              >
+                <span>🔐</span>
+                <span>Change Password</span>
+              </a>
+              <a
+                href="{{ url_for('dashboard.email_settings') }}"
+                class="user-menu-item"
+              >
+                <span>📧</span>
+                <span>Email Settings</span>
+              </a>
+              <a
+                href="{{ url_for('auth.logout') }}"
+                class="user-menu-item logout"
+              >
+                <span>🚪</span>
+                <span>Logout</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </nav>
     {% endif %}
 
     <main class="container mx-auto px-4 py-8">
-        {% block content %}{% endblock %}
+      {% block content %}{% endblock %}
     </main>
 
     <footer class="text-center py-6 text-gray-500 text-sm">
-        <p>&copy; 2025 NetScan - Advanced Network Port Monitoring System</p>
+      <p>© 2026 NetScan - Advanced Network Port Monitoring System</p>
     </footer>
-</body>
+
+    <script>
+      let notificationCheckInterval = null;
+      let lastNotificationCount = 0;
+
+      // Toggle user menu
+      function toggleUserMenu() {
+        const menu = document.getElementById("userMenu");
+        menu.classList.toggle("hidden");
+      }
+
+      // Close user menu when clicking outside
+      document.addEventListener("click", function (event) {
+        const menu = document.getElementById("userMenu");
+        const button = event.target.closest(".relative");
+        if (!button && menu && !menu.classList.contains("hidden")) {
+          menu.classList.add("hidden");
+        }
+      });
+
+      function playNotificationSound() {
+        try {
+          const audio = new Audio();
+          audio.src = "data:audio/wav;base64,U3RlYWx0aCBzb3VuZA==";
+          audio.play().catch((e) => console.log("Sound play failed"));
+        } catch (e) {}
+      }
+
+      function showToast(message, severity = "critical") {
+        const toast = document.createElement("div");
+        toast.className = "toast-notification";
+        const icon = severity === "critical" ? "🔴" : "⚠️";
+        toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 24px;">${icon}</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: white;">New Critical Alert!</div>
+                        <div style="font-size: 12px; color: #9ca3af;">${message.substring(0, 80)}${message.length > 80 ? "..." : ""}</div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: #6b7280; cursor: pointer; font-size: 16px;">✕</button>
+                </div>
+            `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add("hide");
+          setTimeout(() => toast.remove(), 300);
+        }, 5000);
+
+        playNotificationSound();
+      }
+
+      async function fetchNotifications() {
+        try {
+          const response = await fetch("/api/alerts/unread");
+          const data = await response.json();
+
+          const badge = document.getElementById("notificationBadge");
+          if (badge) {
+            if (data.count > 0) {
+              badge.textContent = data.count > 99 ? "99+" : data.count;
+              badge.style.display = "inline-block";
+            } else {
+              badge.style.display = "none";
+            }
+          }
+
+          if (
+            data.count > lastNotificationCount &&
+            data.notifications.length > 0
+          ) {
+            const latest = data.notifications[0];
+            showToast(latest.message, latest.severity);
+          }
+
+          lastNotificationCount = data.count;
+        } catch (error) {
+          console.error("Error fetching notifications:", error);
+        }
+      }
+
+      async function toggleNotifications() {
+        const dropdown = document.getElementById("notificationsDropdown");
+
+        if (dropdown.classList.contains("show")) {
+          dropdown.classList.remove("show");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/alerts/unread");
+          const data = await response.json();
+          const content = document.getElementById("notificationsContent");
+
+          if (data.notifications.length === 0) {
+            content.innerHTML =
+              '<div class="notification-item"><div class="notification-message" style="text-align: center;">✨ No new notifications</div></div>';
+          } else {
+            content.innerHTML = data.notifications
+              .map(
+                (alert) => `
+                        <div class="notification-item ${!alert.is_read ? "unread" : ""}" data-id="${alert.id}">
+                            <div class="notification-title">
+                                ${alert.severity === "critical" ? "🔴 " : "⚠️ "}${alert.alert_type.replace(/_/g, " ").toUpperCase()}
+                                <span class="mark-read-btn" onclick="markAsRead(${alert.id}, event)">✓ Mark read</span>
+                            </div>
+                            <div class="notification-message">${alert.message}</div>
+                            <div class="notification-time">${new Date(alert.created_at).toLocaleString()}</div>
+                        </div>
+                    `,
+              )
+              .join("");
+          }
+
+          dropdown.classList.add("show");
+          await fetchNotifications();
+        } catch (error) {
+          console.error("Error loading notifications:", error);
+        }
+      }
+
+      async function markAsRead(alertId, event) {
+        event.stopPropagation();
+
+        try {
+          await fetch(`/api/alerts/mark-read/${alertId}`, { method: "POST" });
+          await fetchNotifications();
+          await toggleNotifications();
+        } catch (error) {
+          console.error("Error marking as read:", error);
+        }
+      }
+
+      async function markAllAsRead() {
+        try {
+          await fetch("/api/alerts/mark-all-read", { method: "POST" });
+          await fetchNotifications();
+          await toggleNotifications();
+        } catch (error) {
+          console.error("Error marking all as read:", error);
+        }
+      }
+
+      document.addEventListener("click", function (event) {
+        const dropdown = document.getElementById("notificationsDropdown");
+        const button = event.target.closest(".notification-badge");
+        if (!button && dropdown && dropdown.classList.contains("show")) {
+          dropdown.classList.remove("show");
+        }
+      });
+
+      function startNotificationListener() {
+        fetchNotifications();
+        notificationCheckInterval = setInterval(fetchNotifications, 5000);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        startNotificationListener();
+      });
+
+      async function apiRequest(url, method = "GET", body = null) {
+        const options = {
+          method,
+          headers: { "Content-Type": "application/json" },
+        };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(url, options);
+        return response.json();
+      }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
 </html>

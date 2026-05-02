@@ -1,0 +1,103 @@
+{# Macros réutilisables pour éviter la répétition #} {# Macro pour les badges
+derisque #} {% macro risk_badge(risk_level) %} {% if risk_level == 'critical' %}
+<span class="badge risk-critical">CRITICAL</span>
+{% elif risk_level == 'high' %}
+<span class="badge risk-high">HIGH</span>
+{% elif risk_level == 'medium' %}
+<span class="badge risk-medium">MEDIUM</span>
+{% else %}
+<span class="badge risk-low">LOW</span>
+{% endif %} {% endmacro %} {# Macro pour l'état d'un port #} {% macro
+port_state(state) %} {% if state == 'open' %}
+<span class="text-green-400 font-semibold">● OPEN</span>
+{% elif state == 'filtered' %}
+<span class="text-yellow-400 font-semibold">● FILTERED</span>
+{% else %}
+<span class="text-red-400 font-semibold">● CLOSED</span>
+{% endif %} {% endmacro %} {# Macro pour le type de scan #} {% macro
+scan_type_badge(scan_type) %} {% if scan_type == 'quick' %}
+<span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs"
+  >⚡ QUICK</span
+>
+{% else %}
+<span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs"
+  >🔍 FULL</span
+>
+{% endif %} {% endmacro %} {# Macro pour les cartes de statistiques #} {% macro
+stat_card(icon, number, label) %}
+<div class="stat-card">
+  <div class="text-3xl mb-2">{{ icon }}</div>
+  <div class="stat-number">{{ number }}</div>
+  <div class="text-gray-400 text-sm mt-2">{{ label }}</div>
+</div>
+{% endmacro %} {# Macro pour une ligne de tableau de scan #} {% macro
+scan_row(scan, show_view_button = true) %}
+<div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <div class="font-semibold text-white">{{ scan.target }}</div>
+      <div class="text-sm text-gray-400">
+        {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      {{ scan_type_badge(scan.scan_type) }}
+      <span class="text-sm text-gray-400"
+        >{{ "%.1f"|format(scan.duration) if scan.duration else '0' }}s</span
+      >
+      {% if show_view_button %}
+      <a
+        href="{{ url_for('dashboard.scan_detail', scan_id=scan.id) }}"
+        class="text-purple-400 hover:text-purple-300 text-sm"
+      >
+        View →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %} {# Macro pour les alertes #} {% macro alert_card(alert) %}
+<div
+  class="bg-white/5 rounded-xl p-4 mb-3 border-l-4 {% if alert.severity == 'critical' %}border-red-500 {% elif alert.severity == 'high' %}border-orange-500 {% elif alert.severity == 'medium' %}border-yellow-500 {% else %}border-green-500{% endif %}"
+>
+  <div class="flex justify-between items-start flex-wrap gap-2 mb-2">
+    <div>{{ risk_badge(alert.severity) }}</div>
+    <div class="text-xs text-gray-500">
+      {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+    </div>
+  </div>
+  <div class="text-sm text-gray-300 mb-2">{{ alert.message }}</div>
+  <div class="text-xs">
+    <a
+      href="{{ url_for('dashboard.scan_detail', scan_id=alert.scan_id) }}"
+      class="text-purple-400 hover:underline"
+    >
+      🔗 Voir le scan
+    </a>
+  </div>
+</div>
+{% endmacro %} {# Macro pour la pagination #} {% macro
+pagination(pagination_obj, endpoint) %} {% if pagination_obj.pages > 1 %}
+<div class="flex justify-center gap-2 mt-6">
+  {% if pagination_obj.has_prev %}
+  <a
+    href="{{ url_for(endpoint, page=pagination_obj.prev_num) }}"
+    class="page-link"
+    >← Previous</a
+  >
+  {% endif %} {% for page_num in pagination_obj.iter_pages() %} {% if page_num
+  %} {% if page_num == pagination_obj.page %}
+  <span class="page-link page-active">{{ page_num }}</span>
+  {% else %}
+  <a href="{{ url_for(endpoint, page=page_num) }}" class="page-link"
+    >{{ page_num }}</a
+  >
+  {% endif %} {% endif %} {% endfor %} {% if pagination_obj.has_next %}
+  <a
+    href="{{ url_for(endpoint, page=pagination_obj.next_num) }}"
+    class="page-link"
+    >Next →</a
+  >
+  {% endif %}
+</div>
+{% endif %} {% endmacro %}

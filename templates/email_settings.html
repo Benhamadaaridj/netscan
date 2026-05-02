@@ -1,0 +1,198 @@
+{% extends "base.html" %} {% block title %}Email Settings - NetScan{% endblock
+%} {% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="glass-card p-6 mb-8">
+    <h1 class="text-3xl font-bold gradient-text mb-2">
+      📧 Email Alert Settings
+    </h1>
+    <p class="text-gray-400">
+      Configure email notifications for security alerts
+    </p>
+  </div>
+
+  <div class="glass-card p-6">
+    <form id="emailSettingsForm">
+      <div class="mb-6">
+        <label class="block text-gray-300 mb-2">📧 Email Address</label>
+        <input
+          type="email"
+          id="email"
+          class="input-field"
+          placeholder="youremail@gmail.com"
+          value="{{ settings.email if settings else '' }}"
+        />
+        <p class="text-gray-500 text-sm mt-1">
+          You will receive alerts at this email address
+        </p>
+      </div>
+
+      <div class="mb-6">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            id="enableEmailAlerts"
+            class="w-5 h-5"
+            {%
+            if
+            settings
+            and
+            settings.enable_email_alerts
+            %}checked{%
+            endif
+            %}
+          />
+          <span class="text-gray-300">🔔 Enable Email Alerts</span>
+        </label>
+      </div>
+
+      <div class="mb-6">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            id="notifyCriticalOnly"
+            class="w-5 h-5"
+            {%
+            if
+            settings
+            and
+            settings.notify_critical_only
+            %}checked{%
+            endif
+            %}
+          />
+          <span class="text-gray-300">⚠️ Send only critical alerts</span>
+        </label>
+        <p class="text-gray-500 text-sm mt-1 ml-8">
+          When disabled, you'll receive alerts for all port changes
+        </p>
+      </div>
+
+      <div class="flex gap-4">
+        <button
+          type="submit"
+          class="btn-primary px-6 py-2 rounded-xl text-white"
+        >
+          💾 Save Settings
+        </button>
+        <button
+          type="button"
+          id="testEmailBtn"
+          class="btn-secondary px-6 py-2 rounded-xl text-white"
+        >
+          📧 Send Test Email
+        </button>
+      </div>
+
+      <div id="message" class="mt-4 hidden"></div>
+    </form>
+  </div>
+
+  <div class="glass-card p-6 mt-6">
+    <h2 class="text-xl font-bold text-white mb-3">📌 How it works</h2>
+    <ul class="text-gray-400 space-y-2">
+      <li>
+        ✅ <strong class="text-white">Scheduled scans</strong> run automatically
+        and check for open ports
+      </li>
+      <li>
+        🔴 <strong class="text-white">Critical ports</strong> (port 22, 23, 445,
+        3306, 3389, etc.) trigger immediate email alerts
+      </li>
+      <li>
+        📊 <strong class="text-white">Network changes</strong> (new ports,
+        closed ports, service changes) will be reported
+      </li>
+      <li>
+        ⚙️ You can <strong class="text-white">enable/disable</strong> alerts
+        anytime
+      </li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  document
+    .getElementById("emailSettingsForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const enableEmailAlerts =
+        document.getElementById("enableEmailAlerts").checked;
+      const notifyCriticalOnly =
+        document.getElementById("notifyCriticalOnly").checked;
+      const messageDiv = document.getElementById("message");
+
+      try {
+        const response = await fetch("/api/email-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            enable_email_alerts: enableEmailAlerts,
+            notify_critical_only: notifyCriticalOnly,
+          }),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          messageDiv.innerHTML =
+            '<div class="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-400">✅ Settings saved successfully!</div>';
+          messageDiv.classList.remove("hidden");
+          setTimeout(() => messageDiv.classList.add("hidden"), 3000);
+        }
+      } catch (error) {
+        messageDiv.innerHTML =
+          '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400">❌ Error: ' +
+          error.message +
+          "</div>";
+        messageDiv.classList.remove("hidden");
+      }
+    });
+
+  document
+    .getElementById("testEmailBtn")
+    .addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const messageDiv = document.getElementById("message");
+
+      if (!email) {
+        messageDiv.innerHTML =
+          '<div class="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 text-yellow-400">⚠️ Please enter your email address first</div>';
+        messageDiv.classList.remove("hidden");
+        setTimeout(() => messageDiv.classList.add("hidden"), 3000);
+        return;
+      }
+
+      messageDiv.innerHTML =
+        '<div class="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-purple-400">📧 Sending test email...</div>';
+      messageDiv.classList.remove("hidden");
+
+      try {
+        const response = await fetch("/api/test-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          messageDiv.innerHTML =
+            '<div class="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-400">✅ Test email sent! Check your inbox.</div>';
+        } else {
+          messageDiv.innerHTML =
+            '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400">❌ Error: ' +
+            data.error +
+            "</div>";
+        }
+      } catch (error) {
+        messageDiv.innerHTML =
+          '<div class="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400">❌ Error: ' +
+          error.message +
+          "</div>";
+      }
+
+      setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+    });
+</script>
+{% endblock %}

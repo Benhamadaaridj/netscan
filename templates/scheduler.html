@@ -1,0 +1,178 @@
+{% extends "base.html" %} {% import "macros.html" as macros %} {% block title
+%}Scheduled Scans - NetScan{% endblock %} {% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="glass-card p-6 mb-8">
+    <h1 class="text-3xl font-bold gradient-text mb-2">⏰ Scheduled Scans</h1>
+    <p class="text-gray-400">
+      Automate your network monitoring with scheduled scans
+    </p>
+  </div>
+
+  <div class="glass-card p-6 mb-8 border-2 border-purple-500/40">
+    <h2 class="text-xl font-bold text-white mb-6">
+      ✨ Create New Scheduled Scan
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div>
+        <label class="text-gray-400 text-sm mb-2 block"
+          >Target IP / Range</label
+        >
+        <input
+          type="text"
+          id="target"
+          class="input-field"
+          placeholder="192.168.1.1 or 192.168.1.0/24 or 192.168.1.1-192.168.1.50"
+        />
+      </div>
+
+      <div>
+        <label class="text-gray-400 text-sm mb-2 block">Scan Type</label>
+        <select id="scanType" class="input-field">
+          <option value="quick">⚡ Quick Scan (Top 100 ports)</option>
+          <option value="full">🔍 Full Scan (Top 1000 ports)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-gray-400 text-sm mb-2 block">⏰ Scan Interval</label>
+        <select id="interval" class="input-field w-full">
+          <option value="minute">🕐 Every 1 minute</option>
+          <option value="5minutes">🕔 Every 5 minutes</option>
+          <option value="15minutes">⏰ Every 15 minutes</option>
+          <option value="30minutes">⏲️ Every 30 minutes</option>
+          <option value="hourly">📅 Every 1 hour</option>
+          <option value="daily">📆 Every 24 hours</option>
+          <option value="weekly">🗓️ Every 7 days</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex justify-center">
+      <button
+        id="createBtn"
+        class="btn-primary px-8 py-3 rounded-xl text-white font-bold"
+      >
+        Create Scheduled Scan
+      </button>
+    </div>
+
+    <div id="errorMsg" class="hidden mt-4 text-red-400 text-center"></div>
+  </div>
+
+  <div class="glass-card p-6">
+    <h2 class="text-xl font-bold text-white mb-4">📋 Your Scheduled Scans</h2>
+
+    <div id="scansList">
+      <div class="text-center py-8 text-gray-500">Loading...</div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  async function loadScheduledScans() {
+    try {
+      const response = await fetch("/api/scheduled-scans");
+      const scans = await response.json();
+      const container = document.getElementById("scansList");
+
+      if (scans.length === 0) {
+        container.innerHTML =
+          '<div class="text-center py-8 text-gray-500">📭 No scheduled scans yet. Create one above!</div>';
+        return;
+      }
+
+      container.innerHTML = scans
+        .map(
+          (scan) => `
+            <div class="bg-white/5 rounded-xl p-4 mb-3 hover:bg-white/10 transition">
+                <div class="flex justify-between items-start flex-wrap gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-400 font-bold">🎯 ${scan.target}</span>
+                            <span class="text-xs px-2 py-1 rounded ${scan.scan_type === "quick" ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}">
+                                ${scan.scan_type.toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-400 mt-1">
+                            <span>⏰ Interval: ${scan.interval}</span>
+                            ${scan.next_run ? `<span class="ml-3">⏳ Next run: ${new Date(scan.next_run + "Z").toLocaleString()}</span>` : ""}
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleScan(${scan.id}, ${!scan.is_active})" class="px-3 py-1 rounded text-sm ${scan.is_active ? "bg-yellow-500/20 text-yellow-400" : "bg-green-500/20 text-green-400"}">
+                            ${scan.is_active ? "⏸️ Pause" : "▶️ Resume"}
+                        </button>
+                        <button onclick="deleteScan(${scan.id})" class="px-3 py-1 rounded text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `,
+        )
+        .join("");
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  document.getElementById("createBtn")?.addEventListener("click", async () => {
+    const target = document.getElementById("target").value;
+    const scanType = document.getElementById("scanType").value;
+    const interval = document.getElementById("interval").value;
+    const errorDiv = document.getElementById("errorMsg");
+
+    if (!target) {
+      errorDiv.textContent = "Please enter a target IP or range";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    errorDiv.classList.add("hidden");
+
+    try {
+      const response = await fetch("/api/scheduled-scans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, scan_type: scanType, interval }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        errorDiv.textContent = data.error;
+        errorDiv.classList.remove("hidden");
+      } else {
+        document.getElementById("target").value = "";
+        loadScheduledScans();
+      }
+    } catch (error) {
+      errorDiv.textContent = error.message;
+      errorDiv.classList.remove("hidden");
+    }
+  });
+
+  async function toggleScan(id, activate) {
+    try {
+      await fetch(`/api/scheduled-scans/${id}/toggle`, { method: "POST" });
+      loadScheduledScans();
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  async function deleteScan(id) {
+    if (confirm("Are you sure you want to delete this scheduled scan?")) {
+      try {
+        await fetch(`/api/scheduled-scans/${id}`, { method: "DELETE" });
+        loadScheduledScans();
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+  }
+
+  loadScheduledScans();
+</script>
+{% endblock %} {% endblock %}

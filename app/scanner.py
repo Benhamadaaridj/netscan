@@ -3,10 +3,10 @@ import re
 import os
 from datetime import datetime
 import json
+import ipaddress
 from app.models import db, Port, Scan, Alert, ScanComparison
 
-# ========== إضافة حل مشكلة PATH ==========
-# تحديد مسار Nmap مباشرة
+#  Nmap Path Configuration 
 NMAP_PATHS = [
     r"C:\Program Files (x86)\Nmap\nmap.exe",
     r"C:\Program Files\Nmap\nmap.exe",
@@ -14,7 +14,7 @@ NMAP_PATHS = [
     r"C:\Program Files\Nmap",
 ]
 
-# البحث عن Nmap وإضافته إلى PATH
+# Add Nmap to PATH if found
 nmap_found = False
 for path in NMAP_PATHS:
     if os.path.exists(path):
@@ -29,7 +29,7 @@ for path in NMAP_PATHS:
 
 if not nmap_found:
     print("⚠️ Nmap not found in standard locations. Make sure Nmap is installed.")
-# ========================================
+
 
 PORT_RISK_MAPPING = {
     20: 'high', 21: 'high', 22: 'medium', 23: 'critical',
@@ -125,6 +125,94 @@ class NetworkScanner:
         if re.match(ip_pattern, target) or re.match(hostname_pattern, target.lower()):
             return True
         return False
+    
+    def _parse_ip_range(self, range_str):
+        """Parse IP range string and return list of IPs"""
+        try:
+            # Check if it's CIDR notation 
+            if '/' in range_str:
+                network = ipaddress.ip_network(range_str, strict=False)
+                return [str(ip) for ip in network.hosts()]
+            # Check if it's a range with dash 
+            elif '-' in range_str:
+                parts = range_str.split('-')
+                if len(parts) == 2:
+                    start_ip = ipaddress.ip_address(parts[0].strip())
+                    end_ip = ipaddress.ip_address(parts[1].strip())
+                    
+                    if start_ip > end_ip:
+                        start_ip, end_ip = end_ip, start_ip
+                    
+                    ips = []
+                    current_ip = start_ip
+                    while current_ip <= end_ip:
+                        ips.append(str(current_ip))
+                        current_ip += 1
+                    return ips
+            # Single IP
+            else:
+                ipaddress.ip_address(range_str)
+                return [range_str]
+        except Exception as e:
+            print(f"❌ Error parsing IP range: {e}")
+            return None
+    
+    def scan_ip_range(self, ip_range, scan_type='quick'):
+        """
+        Perform port scan on a range of IP addresses
+        Supports CIDR notation (192.168.1.0/24) or range (192.168.1.1-192.168.1.10)
+        """
+        try:
+            # Parse the IP range
+            ips = self._parse_ip_range(ip_range)
+            
+            if not ips:
+                return {'error': 'Invalid IP range format'}
+            
+            if len(ips) > 254:
+                return {'error': f'IP range too large. Maximum 254 IPs allowed, got {len(ips)}'}
+            
+            print(f"🔍 Scanning {len(ips)} IP addresses from range: {ip_range}")
+            
+            # Set nmap arguments based on scan type
+            if scan_type == 'quick':
+                arguments = '-Pn -sS --top-ports 100 -T4'
+            else:
+                arguments = '-Pn -sS --top-ports 1000 -T4'
+            
+            # Scan all IPs in the range
+            self.nm.scan(hosts=' '.join(ips), arguments=arguments)
+            
+            results_by_host = {}
+            for host in self.nm.all_hosts():
+                ports_data = []
+                for proto in self.nm[host].all_protocols():
+                    ports = self.nm[host][proto].keys()
+                    for port in ports:
+                        state = self.nm[host][proto][port]['state']
+                        service = self.nm[host][proto][port].get('name', '')
+                        
+                        ports_data.append({
+                            'port': port,
+                            'protocol': proto,
+                            'state': state,
+                            'service': self.sanitize_nmap_output(service),
+                            'version': None,
+                            'risk_level': self.get_risk_level(port, state)
+                        })
+                
+                results_by_host[host] = ports_data
+            
+            return {
+                'success': True,
+                'range': ip_range,
+                'total_ips': len(ips),
+                'scanned_hosts': len(results_by_host),
+                'results': results_by_host
+            }
+        except Exception as e:
+            print(f"❌ Range scan error: {e}")
+            return {'error': str(e)}
 
 def create_scan(user_id, target, scan_type='quick'):
     """Create and execute a new scan"""
@@ -175,16 +263,76 @@ def create_scan(user_id, target, scan_type='quick'):
             db.session.commit()
         return {'error': str(e)}
 
+def create_range_scan(user_id, ip_range, scan_type='quick'):
+    """Create and execute a scan for a range of IP addresses"""
+    recent = Scan.query.filter(Scan.user_id == user_id, Scan.target == ip_range).order_by(Scan.start_time.desc()).first()
+    if recent and (datetime.utcnow() - recent.start_time).total_seconds() < 10:
+        return {'success': True, 'scan_id': recent.id}
+    try:
+        scanner = NetworkScanner()
+        start_time = datetime.utcnow()
+        
+        # Create scan record for the range
+        scan = Scan(user_id=user_id, target=ip_range, scan_type=scan_type, status='running')
+        db.session.add(scan)
+        db.session.commit()
+        
+        # Run range scan
+        result = scanner.scan_ip_range(ip_range, scan_type)
+        
+        if 'error' in result:
+            scan.status = 'failed'
+            db.session.commit()
+            return {'error': result['error']}
+        
+        # Store port data for each host in the range
+        for host, ports_data in result['results'].items():
+            for port_data in ports_data:
+                port = Port(
+                    scan_id=scan.id,
+                    port_number=port_data['port'],
+                    protocol=port_data['protocol'],
+                    state=port_data['state'],
+                    service=port_data['service'],
+                    version=port_data['version'],
+                    risk_level=port_data['risk_level'],
+                    host_ip=host  
+                )
+                db.session.add(port)
+        
+        # Update scan
+        end_time = datetime.utcnow()
+        scan.status = 'completed'
+        scan.end_time = end_time
+        scan.duration = (end_time - start_time).total_seconds()
+        db.session.commit()
+        
+        # Generate alerts for critical ports
+        generate_alerts(scan)
+        
+        return {
+            'success': True,
+            'scan_id': scan.id,
+            'scanned_hosts': result['scanned_hosts'],
+            'total_ips': result['total_ips']
+        }
+    except Exception as e:
+        if 'scan' in locals():
+            scan.status = 'failed'
+            db.session.commit()
+        return {'error': str(e)}
+
 def generate_alerts(scan):
     """Generate alerts based on scan results"""
     critical_ports = Port.query.filter_by(scan_id=scan.id, risk_level='critical').all()
     
     for port in critical_ports:
+        host_info = f" on {port.host_ip}" if port.host_ip else ""
         alert = Alert(
             user_id=scan.user_id,
             scan_id=scan.id,
             alert_type='critical_port_open',
-            message=f'Critical port {port.port_number}/{port.protocol} ({port.service}) is open',
+            message=f'Critical port {port.port_number}/{port.protocol} ({port.service}) is open{host_info}',
             severity='critical'
         )
         db.session.add(alert)

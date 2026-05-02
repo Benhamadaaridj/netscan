@@ -1,482 +1,307 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% import "macros.html" as macros %} {% block title
+%}Scan Comparisons - NetScan{% endblock %} {% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="glass-card p-6 mb-8">
+    <h1 class="text-3xl font-bold gradient-text mb-2">📊 Scan Comparisons</h1>
+    <p class="text-gray-400">
+      Compare network scans to track changes over time
+    </p>
+  </div>
 
-{% block title %}Scan Comparisons - NetScan{% endblock %}
+  <div class="glass-card p-6 mb-8 border-2 border-purple-500/40">
+    <h2 class="text-xl font-bold text-white mb-6">✨ New Comparison</h2>
 
-{% block extra_css %}
-<style>
-    .comparisons-header {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 24px;
-        padding: 24px;
-        margin-bottom: 32px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .create-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 24px;
-        margin-bottom: 32px;
-    }
-    
-    .select-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .select-label {
-        color: #9ca3af;
-        font-size: 13px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .select-modern {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 12px 16px;
-        color: white;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    
-    .select-modern:focus {
-        outline: none;
-        border-color: #8b5cf6;
-        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
-    }
-    
-    .btn-compare {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        padding: 12px 32px;
-        border-radius: 14px;
-        font-weight: 700;
-        font-size: 16px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-compare:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-    }
-    
-    .history-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-    }
-    
-    .comparison-item {
-        background: rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 20px;
-        transition: all 0.3s ease;
-    }
-    
-    .comparison-item:hover {
-        background: rgba(255, 255, 255, 0.07);
-    }
-    
-    .comparison-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-    
-    .comparison-id {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(139, 92, 246, 0.2);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        color: #c4b5fd;
-    }
-    
-    .comparison-date {
-        font-size: 12px;
-        color: #9ca3af;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .stats-row {
-        display: flex;
-        gap: 16px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-    }
-    
-    .stat-pill {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 40px;
-        padding: 8px 20px;
-        text-align: center;
-        min-width: 100px;
-    }
-    
-    .stat-pill.new {
-        border-left: 3px solid #22c55e;
-    }
-    
-    .stat-pill.closed {
-        border-left: 3px solid #ef4444;
-    }
-    
-    .stat-pill.modified {
-        border-left: 3px solid #eab308;
-    }
-    
-    .stat-number {
-        font-size: 28px;
-        font-weight: 800;
-    }
-    
-    .stat-number.new { color: #4ade80; }
-    .stat-number.closed { color: #f87171; }
-    .stat-number.modified { color: #fbbf24; }
-    
-    .stat-label {
-        font-size: 11px;
-        color: #9ca3af;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .details-section {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .section-title {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .section-title.new { color: #4ade80; }
-    .section-title.closed { color: #f87171; }
-    .section-title.modified { color: #fbbf24; }
-    
-    .port-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-    
-    .port-tag {
-        background: rgba(255, 255, 255, 0.08);
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-family: monospace;
-        transition: all 0.2s ease;
-    }
-    
-    .port-tag:hover {
-        background: rgba(139, 92, 246, 0.3);
-        transform: scale(1.02);
-    }
-    
-    .port-tag.new { border-left: 2px solid #4ade80; }
-    .port-tag.closed { border-left: 2px solid #f87171; }
-    
-    .service-change {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 8px 14px;
-        border-radius: 12px;
-        font-size: 13px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-    }
-    
-    .empty-icon {
-        font-size: 64px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-    
-    .error-message {
-        background: rgba(220, 38, 38, 0.15);
-        border: 1px solid rgba(220, 38, 38, 0.3);
-        border-radius: 12px;
-        padding: 12px;
-        margin-top: 16px;
-        color: #f87171;
-        font-size: 14px;
-    }
-    
-    @media (max-width: 768px) {
-        .stats-row {
-            flex-direction: column;
-        }
-        
-        .stat-pill {
-            width: 100%;
-        }
-        
-        .comparison-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-    }
-</style>
-{% endblock %}
+    {% if scans|length >= 2 %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div>
+        <label class="text-gray-400 text-sm mb-2 block"
+          >First Scan (Older)</label
+        >
+        <select id="scan1" class="input-field">
+          <option value="">— Select first scan —</option>
+          {% for scan in scans %}
+          <option value="{{ scan.id }}">
+            {{ scan.target }} - {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S')
+            }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
 
-{% block content %}
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <div class="comparisons-header">
-        <h1 class="text-3xl font-bold gradient-text mb-2">📊 Scan Comparisons</h1>
-        <p class="text-gray-400">Compare network scans to track changes over time</p>
+      <div>
+        <label class="text-gray-400 text-sm mb-2 block"
+          >Second Scan (Newer)</label
+        >
+        <select id="scan2" class="input-field">
+          <option value="">— Select second scan —</option>
+          {% for scan in scans %}
+          <option value="{{ scan.id }}">
+            {{ scan.target }} - {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S')
+            }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
-    
-    <!-- Create New Comparison -->
-    <div class="create-card">
-        <h2 class="text-xl font-bold text-white mb-5 flex items-center gap-2">
-            <span>🔄</span> Create New Comparison
-        </h2>
-        
-        {% if scans|length >= 2 %}
-        <form id="comparisonForm">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div class="select-group">
-                    <label class="select-label">
-                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                        First Scan (Reference)
-                    </label>
-                    <select id="scan1" class="select-modern" required>
-                        <option value="">— Select a scan —</option>
-                        {% for scan in scans %}
-                        <option value="{{ scan.id }}">
-                            🎯 {{ scan.target }} — {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="select-group">
-                    <label class="select-label">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        Second Scan (Current)
-                    </label>
-                    <select id="scan2" class="select-modern" required>
-                        <option value="">— Select a scan —</option>
-                        {% for scan in scans %}
-                        <option value="{{ scan.id }}">
-                            🎯 {{ scan.target }} — {{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            
-            <div class="flex justify-center">
-                <button type="submit" class="btn-compare px-8 py-3 rounded-xl text-white flex items-center gap-3">
-                    <span>🔍</span> Compare Scans <span>✨</span>
-                </button>
-            </div>
-        </form>
-        
-        <div id="comparisonError" class="error-message hidden"></div>
-        {% else %}
-        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-yellow-400 text-center">
-            ⚠️ You need at least 2 scans to create a comparison.
-            <a href="{{ url_for('dashboard.index') }}" class="underline ml-2">Start a new scan</a>
-        </div>
-        {% endif %}
+
+    <div class="flex justify-center">
+      <button
+        id="compareBtn"
+        class="btn-primary px-8 py-3 rounded-xl text-white font-bold"
+      >
+        🔍 Compare Scans
+      </button>
     </div>
-    
-    <!-- Comparison History -->
-    <div class="history-card">
-        <div class="px-6 py-4 border-b border-white/5">
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                <span>📜</span> Comparison History
-            </h2>
-        </div>
-        
-        {% if comparisons.items %}
+
+    <div id="errorMsg" class="hidden mt-4 text-red-400 text-center"></div>
+    {% else %}
+    <p class="text-yellow-400 text-center">
+      ⚠️ Need at least 2 scans to compare
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="glass-card p-6">
+    <h2 class="text-xl font-bold text-white mb-4">📜 Comparison History</h2>
+
+    {% if comparisons and comparisons.items %} {% for comp in comparisons.items
+    %}
+    <div
+      class="bg-white/5 rounded-xl mb-4 overflow-hidden hover:bg-white/10 transition"
+    >
+      <!-- En-tête de la comparaison -->
+      <div
+        class="flex justify-between items-center p-4 border-b border-white/10 cursor-pointer"
+        onclick="toggleComparison({{ comp.id }})"
+      >
         <div>
-            {% for comparison in comparisons.items %}
-            <div class="comparison-item">
-                <div class="comparison-header">
-                    <div>
-                        <span class="comparison-id">🔖 Comparison #{{ comparison.id }}</span>
-                        <div class="text-xs text-gray-500 mt-1">
-                            Scan #{{ comparison.previous_scan_id }} → Scan #{{ comparison.current_scan_id }}
-                        </div>
-                    </div>
-                    <div class="comparison-date">
-                        📅 {{ comparison.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                    </div>
-                </div>
-                
-                <div class="stats-row">
-                    <div class="stat-pill new">
-                        <div class="stat-number new">{{ comparison.new_ports|length if comparison.new_ports else 0 }}</div>
-                        <div class="stat-label">New Ports</div>
-                    </div>
-                    <div class="stat-pill closed">
-                        <div class="stat-number closed">{{ comparison.closed_ports|length if comparison.closed_ports else 0 }}</div>
-                        <div class="stat-label">Closed Ports</div>
-                    </div>
-                    <div class="stat-pill modified">
-                        <div class="stat-number modified">{{ comparison.modified_services|length if comparison.modified_services else 0 }}</div>
-                        <div class="stat-label">Service Changes</div>
-                    </div>
-                </div>
-                
-                <!-- New Ports -->
-                {% if comparison.new_ports and comparison.new_ports|length > 0 %}
-                <div class="details-section">
-                    <div class="section-title new">
-                        <span>🆕</span> New Ports Detected
-                    </div>
-                    <div class="port-list">
-                        {% for port in comparison.new_ports %}
-                        <span class="port-tag new">
-                            {{ port.port_number }}/{{ port.protocol }} — {{ port.service or 'Unknown' }}
-                            <span class="text-xs ml-1 opacity-70">({{ port.risk_level }})</span>
-                        </span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Closed Ports -->
-                {% if comparison.closed_ports and comparison.closed_ports|length > 0 %}
-                <div class="details-section">
-                    <div class="section-title closed">
-                        <span>🔴</span> Closed Ports
-                    </div>
-                    <div class="port-list">
-                        {% for port in comparison.closed_ports %}
-                        <span class="port-tag closed">
-                            {{ port.port_number }}/{{ port.protocol }} — {{ port.service or 'Unknown' }}
-                        </span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Service Changes -->
-                {% if comparison.modified_services and comparison.modified_services|length > 0 %}
-                <div class="details-section">
-                    <div class="section-title modified">
-                        <span>⚡</span> Service Changes
-                    </div>
-                    <div class="port-list">
-                        {% for change in comparison.modified_services %}
-                        <span class="service-change">
-                            Port {{ change.port }}: {{ change.old_service or 'Unknown' }} → {{ change.new_service or 'Unknown' }}
-                        </span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
+          <div class="flex items-center gap-3">
+            <span class="text-purple-400 font-bold"
+              >Comparison #{{ comp.id }}</span
+            >
+            <span class="text-gray-500 text-xs"
+              >{{ comp.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span
+            >
+          </div>
+          <div class="flex gap-4 mt-2 text-sm">
+            <span class="text-green-400"
+              >🆕 New Ports: {{ comp.new_ports|length if comp.new_ports else 0
+              }}</span
+            >
+            <span class="text-red-400"
+              >🔴 Closed Ports: {{ comp.closed_ports|length if comp.closed_ports
+              else 0 }}</span
+            >
+            <span class="text-yellow-400"
+              >⚡ Modified: {{ comp.modified_services|length if
+              comp.modified_services else 0 }}</span
+            >
+          </div>
         </div>
-        
-        <!-- Pagination -->
-        {% if comparisons.pages > 1 %}
-        <div class="flex justify-center gap-2 py-6 border-t border-white/5">
-            {% if comparisons.has_prev %}
-            <a href="{{ url_for('dashboard.comparisons', page=comparisons.prev_num) }}" class="page-link">← Previous</a>
-            {% endif %}
-            
-            {% for page_num in comparisons.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num == comparisons.page %}
-                    <span class="page-link page-active">{{ page_num }}</span>
-                    {% else %}
-                    <a href="{{ url_for('dashboard.comparisons', page=page_num) }}" class="page-link">{{ page_num }}</a>
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-            
-            {% if comparisons.has_next %}
-            <a href="{{ url_for('dashboard.comparisons', page=comparisons.next_num) }}" class="page-link">Next →</a>
-            {% endif %}
+        <div class="text-gray-400 text-xl">▼</div>
+      </div>
+
+      <div id="comp-details-{{ comp.id }}" class="hidden p-4 bg-black/20">
+        {% if comp.new_ports and comp.new_ports|length > 0 %}
+        <div class="mb-4">
+          <h4 class="text-green-400 font-bold mb-2 flex items-center gap-2">
+            <span>🆕</span> New Open Ports ({{ comp.new_ports|length }})
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-gray-400 border-b border-white/10">
+                <tr>
+                  <th class="text-left py-2">Port</th>
+                  <th class="text-left py-2">Protocol</th>
+                  <th class="text-left py-2">Service</th>
+                  <th class="text-left py-2">Risk Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for port in comp.new_ports %}
+                <tr class="border-b border-white/5">
+                  <td class="py-2 font-mono text-green-400">
+                    {{ port.port_number }}
+                  </td>
+                  <td class="py-2">{{ port.protocol|upper }}</td>
+                  <td class="py-2">{{ port.service or 'Unknown' }}</td>
+                  <td class="py-2">
+                    <span class="badge risk-{{ port.risk_level }}"
+                      >{{ port.risk_level|upper }}</span
+                    >
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
         {% endif %}
-        
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <h3 class="text-xl font-semibold text-white mb-2">No comparisons yet</h3>
-            <p class="text-gray-400">Run multiple scans and compare them above</p>
+
+        <!-- Ports fermés -->
+        {% if comp.closed_ports and comp.closed_ports|length > 0 %}
+        <div class="mb-4">
+          <h4 class="text-red-400 font-bold mb-2 flex items-center gap-2">
+            <span>🔴</span> Closed Ports ({{ comp.closed_ports|length }})
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-gray-400 border-b border-white/10">
+                <tr>
+                  <th class="text-left py-2">Port</th>
+                  <th class="text-left py-2">Protocol</th>
+                  <th class="text-left py-2">Service</th>
+                  <th class="text-left py-2">Risk Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for port in comp.closed_ports %}
+                <tr class="border-b border-white/5">
+                  <td class="py-2 font-mono text-red-400">
+                    {{ port.port_number }}
+                  </td>
+                  <td class="py-2">{{ port.protocol|upper }}</td>
+                  <td class="py-2">{{ port.service or 'Unknown' }}</td>
+                  <td class="py-2">
+                    <span class="badge risk-{{ port.risk_level }}"
+                      >{{ port.risk_level|upper }}</span
+                    >
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
         {% endif %}
+
+        <!-- Services modifiés -->
+        {% if comp.modified_services and comp.modified_services|length > 0 %}
+        <div class="mb-4">
+          <h4 class="text-yellow-400 font-bold mb-2 flex items-center gap-2">
+            <span>⚡</span> Modified Services ({{ comp.modified_services|length
+            }})
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-gray-400 border-b border-white/10">
+                <tr>
+                  <th class="text-left py-2">Port</th>
+                  <th class="text-left py-2">Old Service</th>
+                  <th class="text-left py-2">New Service</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mod in comp.modified_services %}
+                <tr class="border-b border-white/5">
+                  <td class="py-2 font-mono">{{ mod.port }}</td>
+                  <td class="py-2 text-red-400">
+                    {{ mod.old_service or 'Unknown' }}
+                  </td>
+                  <td class="py-2 text-green-400">
+                    {{ mod.new_service or 'Unknown' }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Résumé -->
+        {% if (not comp.new_ports or comp.new_ports|length == 0) and (not
+        comp.closed_ports or comp.closed_ports|length == 0) and (not
+        comp.modified_services or comp.modified_services|length == 0) %}
+        <div class="text-center py-4 text-gray-500">
+          <p>📭 No changes detected between these scans</p>
+        </div>
+        {% endif %}
+      </div>
     </div>
+    {% endfor %} {{ macros.pagination(comparisons, 'dashboard.comparisons') }}
+    {% else %}
+    <p class="text-gray-500 text-center py-8">No comparisons yet</p>
+    {% endif %}
+  </div>
 </div>
 
+<style>
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+  }
+  .risk-critical {
+    background: #dc2626;
+    color: white;
+  }
+  .risk-high {
+    background: #f97316;
+    color: white;
+  }
+  .risk-medium {
+    background: #eab308;
+    color: black;
+  }
+  .risk-low {
+    background: #22c55e;
+    color: white;
+  }
+</style>
+
+{% block extra_js %}
 <script>
-const form = document.getElementById('comparisonForm');
-if (form) {
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const scan1 = document.getElementById('scan1').value;
-        const scan2 = document.getElementById('scan2').value;
-        const errorDiv = document.getElementById('comparisonError');
-        
-        if (scan1 === scan2) {
-            errorDiv.textContent = '❌ Please select two different scans to compare';
-            errorDiv.classList.remove('hidden');
-            return;
-        }
-        
-        errorDiv.classList.add('hidden');
-        
-        try {
-            const response = await fetch('{{ url_for("scanner.api_compare") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    scan1_id: parseInt(scan1), 
-                    scan2_id: parseInt(scan2) 
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                errorDiv.textContent = '❌ ' + data.error;
-                errorDiv.classList.remove('hidden');
-            } else {
-                location.reload();
-            }
-        } catch (error) {
-            errorDiv.textContent = '❌ Error: ' + error.message;
-            errorDiv.classList.remove('hidden');
-        }
-    });
-}
+  function toggleComparison(compId) {
+    const details = document.getElementById("comp-details-" + compId);
+    if (details.classList.contains("hidden")) {
+      details.classList.remove("hidden");
+    } else {
+      details.classList.add("hidden");
+    }
+  }
+
+  document.getElementById("compareBtn")?.addEventListener("click", async () => {
+    const scan1 = document.getElementById("scan1").value;
+    const scan2 = document.getElementById("scan2").value;
+    const errorDiv = document.getElementById("errorMsg");
+
+    if (!scan1 || !scan2) {
+      errorDiv.textContent = "Please select two scans";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+    if (scan1 === scan2) {
+      errorDiv.textContent = "Please select two different scans";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    errorDiv.classList.add("hidden");
+
+    try {
+      const response = await fetch("/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scan1_id: parseInt(scan1),
+          scan2_id: parseInt(scan2),
+        }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        errorDiv.textContent = data.error;
+        errorDiv.classList.remove("hidden");
+      } else {
+        location.reload();
+      }
+    } catch (error) {
+      errorDiv.textContent = error.message;
+      errorDiv.classList.remove("hidden");
+    }
+  });
 </script>
-{% endblock %}
+{% endblock %} {% endblock %}

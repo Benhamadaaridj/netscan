@@ -109,7 +109,7 @@ def export_scan_to_pdf(scan):
     pdf.add_ports_table(ports)
     pdf.add_risk_summary(ports)
     
-    # إنشاء مجلد downloads في المسار الصحيح
+    # Save PDF to downloads directory
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     downloads_dir = os.path.join(base_dir, 'downloads')
     
